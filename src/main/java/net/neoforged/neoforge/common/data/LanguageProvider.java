@@ -11,13 +11,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -62,6 +66,40 @@ public abstract class LanguageProvider implements DataProvider {
         return DataProvider.saveStable(cache, json, target);
     }
 
+    public void add(Object key, String value) {
+        // TODO: The basic solutions come together in one.
+        switch (key) {
+            case String s -> add(s, value);
+            case Supplier<?> supplier -> add(supplier.get(), value);
+            case Block block -> add(block, value);
+            case Item item -> add(item, value);
+            case ItemStack stack -> add(stack, value);
+            case MobEffect effect -> add(effect, value);
+            case EntityType<?> type -> add(type, value);
+            case TagKey<?> tag -> add(tag, value);
+            case TranslatableContents content -> add(content.getKey(), value);
+            case Attribute attribute -> add(attribute, value);
+            case ResourceKey<?> k -> {
+                k.cast(Registries.ENCHANTMENT).ifPresent(rk -> {
+                    add(rk.location().toLanguageKey("enchantment"), value);
+                });
+                k.cast(Registries.DIMENSION).ifPresent(rk -> {
+                    add(rk.location().toLanguageKey(ILevelExtension.TRANSLATION_PREFIX), value);
+                });
+                k.cast(Registries.ADVANCEMENT).ifPresent(rk -> {
+                    add(rk.location().toLanguageKey("advancement", "description"), value);
+                });
+                k.cast(Registries.BIOME).ifPresent(rk -> {
+                    add(rk.location().toLanguageKey("biome"), value);
+                });
+
+            }
+            default -> {
+                throw new IllegalArgumentException("Unknown key: " + key);
+            }
+        }
+    }
+
     public void addBlock(Supplier<? extends Block> key, String name) {
         add(key.get(), name);
     }
@@ -95,6 +133,14 @@ public abstract class LanguageProvider implements DataProvider {
         add(key.getTranslationKey(), name);
     }
     */
+
+    public void addAttribute(Supplier<? extends Attribute> key, String name) {
+        add(key.get(), name);
+    }
+
+    public void add(Attribute key, String name) {
+        add(key.getDescriptionId(), name);
+    }
 
     public void addEffect(Supplier<? extends MobEffect> key, String name) {
         add(key.get(), name);
