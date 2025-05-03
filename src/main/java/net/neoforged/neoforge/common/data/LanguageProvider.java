@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import net.minecraft.advancements.Advancement;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -24,7 +25,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.extensions.ILevelExtension;
@@ -79,25 +82,26 @@ public abstract class LanguageProvider implements DataProvider {
             case TagKey<?> tag -> add(tag, value);
             case TranslatableContents content -> add(content.getKey(), value);
             case Attribute attribute -> add(attribute, value);
-            case ResourceKey<?> k -> {
-                k.cast(Registries.ENCHANTMENT).ifPresent(rk -> {
-                    add(rk.location().toLanguageKey("enchantment"), value);
-                });
-                k.cast(Registries.DIMENSION).ifPresent(rk -> {
-                    add(rk.location().toLanguageKey(ILevelExtension.TRANSLATION_PREFIX), value);
-                });
-                k.cast(Registries.ADVANCEMENT).ifPresent(rk -> {
-                    add(rk.location().toLanguageKey("advancement", "description"), value);
-                });
-                k.cast(Registries.BIOME).ifPresent(rk -> {
-                    add(rk.location().toLanguageKey("biome"), value);
-                });
-
-            }
+            case ResourceKey<?> k -> addResourceKey(k, value);
             default -> {
                 throw new IllegalArgumentException("Unknown key: " + key);
             }
         }
+    }
+
+    public void addResourceKey(ResourceKey<?> k, String name) {
+        k.cast(Registries.ENCHANTMENT).ifPresent(rk -> addEnchantment(rk, name));
+        k.cast(Registries.DIMENSION).ifPresent(rk -> addDimension(rk, name));
+        k.cast(Registries.ADVANCEMENT).ifPresent(rk -> addAdvancement(rk, name));
+        k.cast(Registries.BIOME).ifPresent(rk -> addBiome(rk, name));
+    }
+
+    public void addAdvancement(ResourceKey<Advancement> advancement, String name) {
+        add(advancement.location().toLanguageKey("advancement", "description"), name);
+    }
+
+    public void addEnchantment(ResourceKey<Enchantment> enchantment, String name) {
+        add(enchantment.location().toLanguageKey("enchantment"), name);
     }
 
     public void addBlock(Supplier<? extends Block> key, String name) {
@@ -122,6 +126,10 @@ public abstract class LanguageProvider implements DataProvider {
 
     public void add(ItemStack key, String name) {
         add(key.getItem().getDescriptionId(), name);
+    }
+
+    public void addBiome(ResourceKey<Biome> biome, String name) {
+        add(biome.location().toLanguageKey("biome"), name);
     }
 
     /*
